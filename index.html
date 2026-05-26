@@ -1,4 +1,16 @@
-<!-- 아래 부분만 기존 코드에서 교체 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incheon Mobility</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div id="app"></div>
 
 <script>
 
@@ -7,6 +19,18 @@ let currentUser = null;
 
 let users = [];
 let reservation = null;
+
+const locations = [
+  "인천국제공항",
+  "김포공항",
+  "회기역",
+  "강남역",
+  "서울역",
+  "잠실역",
+  "판교역",
+  "부산역",
+  "대전역"
+];
 
 const drivers = [
   {
@@ -25,23 +49,251 @@ const drivers = [
   }
 ];
 
-const locations = [
-  "인천국제공항",
-  "김포공항",
-  "회기역",
-  "강남역",
-  "서울역",
-  "잠실역",
-  "부산역",
-  "판교역"
-];
+function renderHome() {
 
-function getTaxiPrice(departure, destination) {
+  document.getElementById("app").innerHTML = `
+    <div class="min-h-screen flex items-center justify-center p-6">
 
-  const distance =
-    Math.floor(Math.random() * 40) + 10;
+      <div class="w-full max-w-6xl grid md:grid-cols-2 gap-6">
 
-  return distance * 1800;
+        <div
+          onclick="selectMode('customer')"
+          class="cursor-pointer bg-white rounded-3xl p-10 shadow-xl hover:scale-[1.02] transition-all"
+        >
+
+          <div class="text-7xl mb-6">🧳</div>
+
+          <h2 class="text-4xl font-bold">
+            고객용
+          </h2>
+
+          <p class="text-gray-500 mt-4 text-lg">
+            공항 픽업 예약 및 기사 호출
+          </p>
+
+        </div>
+
+        <div
+          onclick="selectMode('driver')"
+          class="cursor-pointer bg-white rounded-3xl p-10 shadow-xl hover:scale-[1.02] transition-all"
+        >
+
+          <div class="text-7xl mb-6">🚖</div>
+
+          <h2 class="text-4xl font-bold">
+            기사용
+          </h2>
+
+          <p class="text-gray-500 mt-4 text-lg">
+            운행 관리 및 수익 확인
+          </p>
+
+        </div>
+
+        <div id="auth-area" class="md:col-span-2"></div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function selectMode(mode) {
+
+  currentMode = mode;
+
+  document.getElementById("auth-area").innerHTML = `
+    <div class="bg-white rounded-3xl shadow-2xl p-10 mt-2">
+
+      <h2 class="text-3xl font-bold mb-8">
+        ${mode === "customer" ? "고객 로그인" : "기사 로그인"}
+      </h2>
+
+      <div class="space-y-4">
+
+        <input
+          id="login-id"
+          placeholder="아이디"
+          class="w-full border rounded-2xl px-5 py-4"
+        >
+
+        <input
+          id="login-password"
+          type="password"
+          placeholder="비밀번호"
+          class="w-full border rounded-2xl px-5 py-4"
+        >
+
+        <button
+          onclick="login()"
+          class="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg"
+        >
+          로그인
+        </button>
+
+        <button
+          onclick="showSignup()"
+          class="w-full border border-black py-4 rounded-2xl font-bold text-lg"
+        >
+          회원가입 하기
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function showSignup() {
+
+  document.getElementById("auth-area").innerHTML += `
+    <div class="bg-white rounded-3xl shadow-2xl p-10 mt-6">
+
+      <h2 class="text-3xl font-bold mb-8">
+        회원가입
+      </h2>
+
+      <div class="space-y-4">
+
+        <input
+          id="signup-id"
+          placeholder="${currentMode === "customer" ? "고객 아이디" : "기사 아이디"}"
+          class="w-full border rounded-2xl px-5 py-4"
+        >
+
+        <input
+          id="signup-password"
+          type="password"
+          placeholder="비밀번호"
+          class="w-full border rounded-2xl px-5 py-4"
+        >
+
+        <input
+          id="signup-name"
+          placeholder="${currentMode === "customer" ? "고객 이름" : "기사 이름"}"
+          class="w-full border rounded-2xl px-5 py-4"
+        >
+
+        ${
+          currentMode === "driver"
+          ? `
+            <input
+              id="signup-car"
+              placeholder="차종"
+              class="w-full border rounded-2xl px-5 py-4"
+            >
+          `
+          : ""
+        }
+
+        <button
+          onclick="signup()"
+          class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg"
+        >
+          회원가입 완료
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function signup() {
+
+  const id =
+    document.getElementById("signup-id").value.trim();
+
+  const password =
+    document.getElementById("signup-password").value.trim();
+
+  const name =
+    document.getElementById("signup-name").value.trim();
+
+  if (!id || !password || !name) {
+
+    alert("모든 항목을 입력해주세요.");
+
+    return;
+  }
+
+  const exists =
+    users.find(user => user.id === id);
+
+  if (exists) {
+
+    alert("이미 존재하는 아이디입니다.");
+
+    return;
+  }
+
+  users.push({
+    id,
+    password,
+    name,
+    type: currentMode
+  });
+
+  currentUser = {
+    id,
+    name,
+    type: currentMode
+  };
+
+  alert("회원가입 완료!");
+
+  if (currentMode === "customer") {
+
+    renderCustomer();
+
+  } else {
+
+    renderDriver();
+
+  }
+}
+
+function login() {
+
+  const id =
+    document.getElementById("login-id").value.trim();
+
+  const password =
+    document.getElementById("login-password").value.trim();
+
+  if (!id || !password) {
+
+    alert("아이디와 비밀번호를 입력해주세요.");
+
+    return;
+  }
+
+  const matched =
+    users.find(
+      user =>
+        user.id === id &&
+        user.password === password &&
+        user.type === currentMode
+    );
+
+  if (!matched) {
+
+    alert("회원가입된 계정만 로그인 가능합니다.");
+
+    return;
+  }
+
+  currentUser = matched;
+
+  if (currentMode === "customer") {
+
+    renderCustomer();
+
+  } else {
+
+    renderDriver();
+
+  }
 }
 
 function showSuggestions(type) {
@@ -53,7 +305,9 @@ function showSuggestions(type) {
     document.getElementById(type + "-list");
 
   if (!value) {
+
     list.innerHTML = "";
+
     return;
   }
 
@@ -80,6 +334,11 @@ function selectLocation(type, location) {
   document.getElementById(type + "-list").innerHTML = "";
 }
 
+function getEstimatedPrice() {
+
+  return Math.floor(Math.random() * 50000) + 30000;
+}
+
 function reserveRide() {
 
   const departure =
@@ -104,24 +363,21 @@ function reserveRide() {
   const assignedDriver =
     drivers[Math.floor(Math.random() * drivers.length)];
 
-  const estimatedPrice =
-    getTaxiPrice(departure, destination);
-
   reservation = {
     customer: currentUser.name,
     departure,
     destination,
     date,
     time,
-    driver: assignedDriver,
-    estimatedPrice,
+    estimatedPrice: getEstimatedPrice(),
     driverPrice: null,
-    accepted: false
+    accepted: false,
+    driver: assignedDriver
   };
 
   alert(
     assignedDriver.name +
-    " 기사님에게 예약 요청이 전달되었습니다."
+    " 기사님에게 요청이 전달되었습니다."
   );
 
   renderCustomer();
@@ -141,7 +397,7 @@ function submitDriverPrice() {
 
   reservation.driverPrice = price;
 
-  alert("고객에게 금액 제안이 전달되었습니다.");
+  alert("고객에게 금액 제안 완료!");
 
   renderDriver();
 }
@@ -164,14 +420,9 @@ function renderCustomer() {
 
     mapUrl =
       "https://www.google.com/maps/dir/" +
-      encodeURIComponent(
-        reservation.departure
-      ) +
+      encodeURIComponent(reservation.departure) +
       "/" +
-      encodeURIComponent(
-        reservation.destination
-      ) +
-      "/";
+      encodeURIComponent(reservation.destination);
 
   }
 
@@ -194,6 +445,13 @@ function renderCustomer() {
 
           </div>
 
+          <button
+            onclick="logout()"
+            class="bg-gray-200 px-5 py-3 rounded-2xl font-bold"
+          >
+            로그아웃
+          </button>
+
         </div>
 
         <div class="grid lg:grid-cols-2 gap-6">
@@ -211,7 +469,7 @@ function renderCustomer() {
 
               <div
                 id="departure-list"
-                class="absolute left-0 right-0 bg-white border rounded-2xl shadow-xl z-20 overflow-hidden"
+                class="absolute left-0 right-0 bg-white border rounded-2xl shadow-xl overflow-hidden z-20"
               ></div>
 
             </div>
@@ -227,7 +485,7 @@ function renderCustomer() {
 
               <div
                 id="destination-list"
-                class="absolute left-0 right-0 bg-white border rounded-2xl shadow-xl z-20 overflow-hidden"
+                class="absolute left-0 right-0 bg-white border rounded-2xl shadow-xl overflow-hidden z-20"
               ></div>
 
             </div>
@@ -285,13 +543,13 @@ function renderCustomer() {
                   ${
                     reservation.driverPrice
                     ? `
-                      <div class="mt-5 bg-white rounded-2xl p-4 border">
+                      <div class="mt-5 bg-white rounded-2xl p-5 border">
 
                         <p class="font-bold text-xl">
                           기사 제안 금액
                         </p>
 
-                        <p class="text-3xl font-bold mt-2 text-green-600">
+                        <p class="text-3xl font-bold text-green-600 mt-2">
                           ₩${Number(
                             reservation.driverPrice
                           ).toLocaleString()}
@@ -318,7 +576,7 @@ function renderCustomer() {
                     `
                     : `
                       <div class="mt-5 text-gray-500">
-                        기사님이 금액을 제안중입니다...
+                        기사님이 금액 제안중입니다...
                       </div>
                     `
                   }
@@ -330,7 +588,7 @@ function renderCustomer() {
 
           </div>
 
-          <div class="rounded-3xl overflow-hidden border h-[700px] relative">
+          <div class="rounded-3xl overflow-hidden border h-[700px]">
 
             <iframe
               src="${mapUrl}"
@@ -352,11 +610,22 @@ function renderDriver() {
   document.getElementById("app").innerHTML = `
     <div class="p-6">
 
-      <div class="max-w-7xl mx-auto bg-white rounded-3xl shadow-xl p-8">
+      <div class="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-8">
 
-        <h1 class="text-4xl font-bold mb-8">
-          기사 대시보드
-        </h1>
+        <div class="flex justify-between items-center mb-8">
+
+          <h1 class="text-4xl font-bold">
+            기사 대시보드
+          </h1>
+
+          <button
+            onclick="logout()"
+            class="bg-gray-200 px-5 py-3 rounded-2xl font-bold"
+          >
+            로그아웃
+          </button>
+
+        </div>
 
         ${
           reservation
@@ -386,7 +655,7 @@ function renderDriver() {
                     <input
                       id="driver-price"
                       type="number"
-                      placeholder="제안 금액 입력"
+                      placeholder="희망 금액 입력"
                       class="w-full border rounded-2xl px-5 py-4"
                     >
 
@@ -403,7 +672,7 @@ function renderDriver() {
                   <div class="mt-6 bg-white rounded-2xl p-5">
 
                     <p class="font-bold">
-                      제안 금액:
+                      제안 완료 금액
                     </p>
 
                     <p class="text-3xl font-bold text-green-600 mt-2">
@@ -431,4 +700,17 @@ function renderDriver() {
   `;
 }
 
+function logout() {
+
+  currentMode = null;
+  currentUser = null;
+
+  renderHome();
+}
+
+renderHome();
+
 </script>
+
+</body>
+</html>
