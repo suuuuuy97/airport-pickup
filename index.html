@@ -19,8 +19,7 @@ let currentMode = null;
 let currentUser = null;
 
 let users = [];
-
-let reservation = null;
+let reservations = [];
 
 const locations = [
   "인천국제공항",
@@ -36,18 +35,28 @@ const locations = [
 
 const drivers = [
   {
+    id: 1,
     name: "김기사",
     car: "K8 블랙",
-    eta: "5분",
+    carNumber: "12가3456",
+    rating: 4.9,
+    reviews: 128,
     image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop"
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop",
+    reviewText:
+      "시간 약속 정확하고 정말 친절했어요."
   },
   {
+    id: 2,
     name: "박드라이버",
     car: "카니발 하이리무진",
-    eta: "8분",
+    carNumber: "34나5678",
+    rating: 4.8,
+    reviews: 97,
     image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop"
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop",
+    reviewText:
+      "차량 상태 좋고 운전이 편안했습니다."
   }
 ];
 
@@ -184,6 +193,12 @@ function showSignup() {
               placeholder="차종"
               class="w-full border rounded-2xl px-5 py-4"
             >
+
+            <input
+              id="signup-car-number"
+              placeholder="차량 번호"
+              class="w-full border rounded-2xl px-5 py-4"
+            >
           `
           : ""
         }
@@ -219,21 +234,25 @@ function signup() {
     return;
   }
 
-  const exists =
-    users.find(user => user.id === id);
+  const carInput =
+    document.getElementById("signup-car");
 
-  if (exists) {
-
-    alert("이미 존재하는 아이디입니다.");
-
-    return;
-  }
+  const carNumberInput =
+    document.getElementById("signup-car-number");
 
   users.push({
     id,
     password,
     name,
-    type: currentMode
+    type: currentMode,
+    car:
+      carInput
+      ? carInput.value
+      : "",
+    carNumber:
+      carNumberInput
+      ? carNumberInput.value
+      : ""
   });
 
   currentUser = {
@@ -262,13 +281,6 @@ function login() {
 
   const password =
     document.getElementById("login-password").value.trim();
-
-  if (!id || !password) {
-
-    alert("아이디와 비밀번호를 입력해주세요.");
-
-    return;
-  }
 
   const matched =
     users.find(
@@ -349,12 +361,6 @@ function reserveRide() {
   const destination =
     document.getElementById("destination").value.trim();
 
-  const date =
-    document.getElementById("date").value;
-
-  const time =
-    document.getElementById("time").value;
-
   if (!departure || !destination) {
 
     alert("출발지와 목적지를 입력해주세요.");
@@ -362,33 +368,29 @@ function reserveRide() {
     return;
   }
 
-  const assignedDriver =
-    drivers[Math.floor(Math.random() * drivers.length)];
-
-  reservation = {
+  reservations.push({
+    id: Date.now(),
     customer: currentUser.name,
     departure,
     destination,
-    date,
-    time,
     estimatedPrice: getEstimatedPrice(),
-    driverPrice: null,
-    accepted: false,
-    driver: assignedDriver
-  };
+    offers: [],
+    matched: false
+  });
 
-  alert(
-    assignedDriver.name +
-    " 기사님에게 요청이 전달되었습니다."
-  );
+  alert("모든 기사에게 예약 요청이 전달되었습니다.");
 
   renderCustomer();
 }
 
-function submitDriverPrice() {
+function submitOffer(reservationId, driverName) {
 
-  const price =
-    document.getElementById("driver-price").value;
+  const input =
+    document.getElementById(
+      "offer-" + reservationId
+    );
+
+  const price = input.value;
 
   if (!price) {
 
@@ -397,34 +399,52 @@ function submitDriverPrice() {
     return;
   }
 
-  reservation.driverPrice = price;
+  const reservation =
+    reservations.find(r => r.id === reservationId);
 
-  alert("고객에게 금액 제안 완료!");
+  reservation.offers.push({
+    driver: driverName,
+    price
+  });
+
+  alert("고객에게 제안 완료!");
 
   renderDriver();
 }
 
-function acceptPrice() {
+function acceptOffer(reservationId, driverName) {
 
-  reservation.accepted = true;
+  const reservation =
+    reservations.find(r => r.id === reservationId);
 
-  alert("매칭 완료!");
+  reservation.matched = true;
+
+  reservation.selectedDriver = driverName;
+
+  alert(driverName + " 기사님과 매칭 완료!");
 
   renderCustomer();
 }
 
 function renderCustomer() {
 
+  const latestReservation =
+    reservations[reservations.length - 1];
+
   let mapUrl =
     "https://maps.google.com/maps?q=인천국제공항&output=embed";
 
-  if (reservation) {
+  if (latestReservation) {
 
     mapUrl =
       "https://www.google.com/maps/dir/" +
-      encodeURIComponent(reservation.departure) +
+      encodeURIComponent(
+        latestReservation.departure
+      ) +
       "/" +
-      encodeURIComponent(reservation.destination);
+      encodeURIComponent(
+        latestReservation.destination
+      );
 
   }
 
@@ -446,13 +466,6 @@ function renderCustomer() {
             </p>
 
           </div>
-
-          <button
-            onclick="logout()"
-            class="bg-gray-200 px-5 py-3 rounded-2xl font-bold"
-          >
-            로그아웃
-          </button>
 
         </div>
 
@@ -492,18 +505,6 @@ function renderCustomer() {
 
             </div>
 
-            <input
-              id="date"
-              type="date"
-              class="w-full border rounded-2xl px-5 py-4"
-            >
-
-            <input
-              id="time"
-              type="time"
-              class="w-full border rounded-2xl px-5 py-4"
-            >
-
             <button
               onclick="reserveRide()"
               class="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg"
@@ -511,74 +512,106 @@ function renderCustomer() {
               예약 요청하기
             </button>
 
-            ${
-              reservation
-              ? `
-                <div class="bg-green-50 border-2 border-green-500 rounded-3xl p-5">
+            <div class="bg-white border rounded-3xl p-5">
 
-                  <div class="flex items-center gap-4">
+              <h3 class="text-2xl font-bold mb-5">
+                인기 기사 추천
+              </h3>
+
+              ${
+                drivers.map(driver => `
+                  <div class="flex items-center gap-4 mb-5">
 
                     <img
-                      src="${reservation.driver.image}"
-                      class="w-20 h-20 rounded-full object-cover"
+                      src="${driver.image}"
+                      class="w-16 h-16 rounded-full object-cover"
                     >
 
-                    <div>
+                    <div class="flex-1">
 
-                      <h3 class="text-2xl font-bold">
-                        ${reservation.driver.name}
-                      </h3>
-
-                      <p class="text-gray-500 mt-1">
-                        ${reservation.driver.car}
+                      <p class="font-bold">
+                        ${driver.name}
                       </p>
 
-                      <p class="text-gray-500 mt-2">
-                        예상 택시요금:
-                        ₩${reservation.estimatedPrice.toLocaleString()}
+                      <p class="text-sm text-gray-500">
+                        ⭐ ${driver.rating}
+                        · 후기 ${driver.reviews}개
+                      </p>
+
+                      <p class="text-sm mt-1">
+                        "${driver.reviewText}"
+                      </p>
+
+                      <p class="text-sm text-gray-400 mt-1">
+                        ${driver.car}
+                        ·
+                        ${driver.carNumber}
                       </p>
 
                     </div>
 
+                    <button
+                      class="bg-black text-white px-4 py-2 rounded-2xl"
+                    >
+                      지정 호출
+                    </button>
+
                   </div>
+                `).join("")
+              }
+
+            </div>
+
+            ${
+              latestReservation
+              ? `
+                <div class="bg-green-50 border-2 border-green-500 rounded-3xl p-5">
+
+                  <p class="font-bold text-2xl mb-4">
+                    기사 제안 목록
+                  </p>
 
                   ${
-                    reservation.driverPrice
-                    ? `
-                      <div class="mt-5 bg-white rounded-2xl p-5 border">
+                    latestReservation.offers.length > 0
+                    ? latestReservation.offers.map(offer => `
+                        <div class="bg-white rounded-2xl p-4 mb-4 flex justify-between items-center">
 
-                        <p class="font-bold text-xl">
-                          기사 제안 금액
-                        </p>
+                          <div>
 
-                        <p class="text-3xl font-bold text-green-600 mt-2">
-                          ₩${Number(
-                            reservation.driverPrice
-                          ).toLocaleString()}
-                        </p>
+                            <p class="font-bold">
+                              ${offer.driver}
+                            </p>
 
-                        ${
-                          !reservation.accepted
-                          ? `
-                            <button
-                              onclick="acceptPrice()"
-                              class="w-full mt-4 bg-green-600 text-white py-4 rounded-2xl font-bold"
-                            >
-                              이 금액으로 매칭하기
-                            </button>
-                          `
-                          : `
-                            <div class="mt-4 bg-green-50 border border-green-500 rounded-2xl p-4 text-green-700 font-bold">
-                              매칭 완료
-                            </div>
-                          `
-                        }
+                            <p class="text-2xl font-bold text-green-600 mt-1">
+                              ₩${Number(
+                                offer.price
+                              ).toLocaleString()}
+                            </p>
 
-                      </div>
-                    `
+                          </div>
+
+                          ${
+                            !latestReservation.matched
+                            ? `
+                              <button
+                                onclick="acceptOffer(${latestReservation.id},'${offer.driver}')"
+                                class="bg-green-600 text-white px-5 py-3 rounded-2xl font-bold"
+                              >
+                                매칭하기
+                              </button>
+                            `
+                            : `
+                              <div class="text-green-600 font-bold">
+                                매칭 완료
+                              </div>
+                            `
+                          }
+
+                        </div>
+                      `).join("")
                     : `
-                      <div class="mt-5 text-gray-500">
-                        기사님이 금액 제안중입니다...
+                      <div class="text-gray-500">
+                        기사님들의 제안을 기다리는 중입니다...
                       </div>
                     `
                   }
@@ -612,7 +645,7 @@ function renderDriver() {
   document.getElementById("app").innerHTML = `
     <div class="p-6">
 
-      <div class="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-8">
+      <div class="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl p-8">
 
         <div class="flex justify-between items-center mb-8">
 
@@ -629,72 +662,66 @@ function renderDriver() {
 
         </div>
 
-        ${
-          reservation
-          ? `
-            <div class="bg-yellow-50 border-2 border-yellow-400 rounded-3xl p-6">
+        <div class="space-y-5">
 
-              <p class="font-bold text-2xl">
-                신규 예약 요청
-              </p>
+          ${
+            reservations.length > 0
+            ? reservations.map(reservation => `
+                <div class="bg-yellow-50 border-2 border-yellow-400 rounded-3xl p-6">
 
-              <p class="mt-4 text-lg">
-                ${reservation.departure}
-                →
-                ${reservation.destination}
-              </p>
+                  <p class="font-bold text-2xl">
+                    ${reservation.customer} 고객
+                  </p>
 
-              <p class="mt-2 text-gray-500">
-                예상 택시요금:
-                ₩${reservation.estimatedPrice.toLocaleString()}
-              </p>
+                  <p class="mt-4 text-lg">
+                    ${reservation.departure}
+                    →
+                    ${reservation.destination}
+                  </p>
 
-              ${
-                !reservation.driverPrice
-                ? `
-                  <div class="mt-6">
+                  <p class="mt-2 text-gray-500">
+                    예상 택시요금:
+                    ₩${reservation.estimatedPrice.toLocaleString()}
+                  </p>
 
-                    <input
-                      id="driver-price"
-                      type="number"
-                      placeholder="희망 금액 입력"
-                      class="w-full border rounded-2xl px-5 py-4"
-                    >
+                  ${
+                    !reservation.matched
+                    ? `
+                      <div class="mt-6">
 
-                    <button
-                      onclick="submitDriverPrice()"
-                      class="w-full mt-4 bg-black text-white py-4 rounded-2xl font-bold"
-                    >
-                      금액 제안하기
-                    </button>
+                        <input
+                          id="offer-${reservation.id}"
+                          type="number"
+                          placeholder="제안 금액 입력"
+                          class="w-full border rounded-2xl px-5 py-4"
+                        >
 
-                  </div>
-                `
-                : `
-                  <div class="mt-6 bg-white rounded-2xl p-5">
+                        <button
+                          onclick="submitOffer(${reservation.id},'${currentUser.name}')"
+                          class="w-full mt-4 bg-black text-white py-4 rounded-2xl font-bold"
+                        >
+                          금액 제안하기
+                        </button>
 
-                    <p class="font-bold">
-                      제안 완료 금액
-                    </p>
+                      </div>
+                    `
+                    : `
+                      <div class="mt-6 bg-green-50 border border-green-500 rounded-2xl p-4 text-green-700 font-bold">
+                        ${reservation.selectedDriver} 기사님 매칭 완료
+                      </div>
+                    `
+                  }
 
-                    <p class="text-3xl font-bold text-green-600 mt-2">
-                      ₩${Number(
-                        reservation.driverPrice
-                      ).toLocaleString()}
-                    </p>
+                </div>
+              `).join("")
+            : `
+              <div class="text-gray-400">
+                현재 예약 요청이 없습니다.
+              </div>
+            `
+          }
 
-                  </div>
-                `
-              }
-
-            </div>
-          `
-          : `
-            <div class="text-gray-400">
-              현재 예약 요청이 없습니다.
-            </div>
-          `
-        }
+        </div>
 
       </div>
 
