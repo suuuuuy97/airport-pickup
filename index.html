@@ -387,11 +387,7 @@ function reserveRide(targetDriver = null) {
 
     selectedDriver: null,
 
-    completed: false,
-
-    customerReview: "",
-
-    driverReview: ""
+    completed: false
 
   });
 
@@ -417,7 +413,7 @@ function submitOffer(reservationId) {
 
   });
 
-  alert("고객에게 제안 완료!");
+  alert("제안 완료!");
 
   renderDriver();
   renderCustomer();
@@ -441,54 +437,6 @@ function acceptOffer(reservationId, driverName) {
     Number(reservation.estimatedPrice);
 
   renderCustomer();
-}
-
-function completeRide(reservationId) {
-
-  const reservation =
-    reservations.find(r => r.id === reservationId);
-
-  reservation.completed = true;
-
-  renderCustomer();
-}
-
-function submitCustomerReview(reservationId) {
-
-  const reservation =
-    reservations.find(r => r.id === reservationId);
-
-  reservation.customerReview =
-    document.getElementById(
-      "customer-review-" + reservationId
-    ).value;
-
-  const driver =
-    users.find(
-      user =>
-        user.name === reservation.selectedDriver
-    );
-
-  driver.reviews.push(
-    reservation.customerReview
-  );
-
-  renderCustomer();
-}
-
-function submitDriverReview(reservationId) {
-
-  const reservation =
-    reservations.find(r => r.id === reservationId);
-
-  reservation.driverReview =
-    document.getElementById(
-      "driver-review-" + reservationId
-    ).value;
-
-  alert("운행 최종 종료!");
-
-  renderDriver();
 }
 
 function renderCustomer() {
@@ -627,29 +575,11 @@ function renderCustomer() {
                             }
                           </p>
 
-                          <div class="mt-4 bg-gray-50 rounded-2xl p-3">
-
-                            <p class="text-xs text-gray-400">
-                              최근 후기
-                            </p>
-
-                            <p class="text-sm mt-1">
-                              ${
-                                driver.reviews.length > 0
-                                ? driver.reviews[
-                                    driver.reviews.length - 1
-                                  ]
-                                : "친절하시고 운전이 편했어요."
-                              }
-                            </p>
-
-                          </div>
-
                           <button
                             onclick="reserveRide('${driver.name}')"
                             class="mt-4 bg-black text-white px-5 py-3 rounded-2xl font-bold"
                           >
-                            지정 매칭 요청
+                            지정 기사 요청
                           </button>
 
                         </div>
@@ -749,7 +679,15 @@ function renderDriver() {
 
   const openReservations =
     reservations.filter(
-      reservation => !reservation.matched
+      reservation =>
+
+        !reservation.matched &&
+
+        (
+          !reservation.targetDriver ||
+
+          reservation.targetDriver === currentUser.name
+        )
     );
 
   document.getElementById("app").innerHTML = `
@@ -758,21 +696,9 @@ function renderDriver() {
 
       <div class="max-w-6xl mx-auto bg-white rounded-[32px] shadow-xl p-8">
 
-        <div class="flex justify-between items-center mb-10">
-
-          <div>
-
-            <h1 class="text-4xl font-bold">
-              기사 대시보드
-            </h1>
-
-            <p class="text-gray-500 mt-2">
-              Driver Dashboard
-            </p>
-
-          </div>
-
-        </div>
+        <h1 class="text-4xl font-bold mb-10">
+          기사 대시보드
+        </h1>
 
         <div class="grid grid-cols-3 gap-5 mb-8">
 
@@ -910,6 +836,19 @@ function renderDriver() {
 
   `;
 }
+
+setInterval(() => {
+
+  if (
+    currentMode === "driver" &&
+    currentUser
+  ) {
+
+    renderDriver();
+
+  }
+
+}, 2000);
 
 renderHome();
 
